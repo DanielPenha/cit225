@@ -3,4 +3,4 @@ This repository is dedicated to Oracle SQL projects written for the CIT 225 Data
 
 Each student was provided a Fedora image containing an operational Oracle environment, and all commands were executed using the SQLPlus command line interface.
 
-Links to the lab instructions are listed on the right-hand side of http://michaelmclaughlin.info/db1/ under the links to the lessons.
+Links to the lab instructions are listed on the right-hand side of http://michaelmclaughlin.info/db1/ under the links to each of the lessons.
