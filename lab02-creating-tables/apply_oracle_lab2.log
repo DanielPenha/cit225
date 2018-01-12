@@ -1,0 +1,2280 @@
+SQL> 
+SQL> -- Set SQL*Plus environmnet variables.
+SQL> SET ECHO ON
+SQL> SET FEEDBACK ON
+SQL> SET NULL '<Null>'
+SQL> SET PAGESIZE 999
+SQL> SET SERVEROUTPUT ON
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- STEP 1: Create SYSTEM_USER table and sequence and seed data.
+SQL> -- ------------------------------------------------------------------
+SQL> -- Conditionally drop table and sequence.
+SQL> BEGIN
+  2    FOR i IN (SELECT null FROM user_tables WHERE table_name = 'SYSTEM_USER_LAB') LOOP
+  3  	 EXECUTE IMMEDIATE 'DROP TABLE system_user_lab CASCADE CONSTRAINTS';
+  4    END LOOP;
+  5    FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'SYSTEM_USER_LAB_S1') LOOP
+  6  	 EXECUTE IMMEDIATE 'DROP SEQUENCE system_user_lab_s1';
+  7    END LOOP;
+  8  END;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> -- Create table.
+SQL> CREATE TABLE system_user_lab
+  2  ( system_user_lab_id	       NUMBER
+  3  , system_user_name 	   VARCHAR2(20) CONSTRAINT nn_system_user_lab_1 NOT NULL
+  4  , system_user_group_id	   NUMBER	CONSTRAINT nn_system_user_lab_2 NOT NULL
+  5  , system_user_type 	   NUMBER	CONSTRAINT nn_system_user_lab_3 NOT NULL
+  6  , first_name		   VARCHAR2(20)
+  7  , middle_name		   VARCHAR2(20)
+  8  , last_name		   VARCHAR2(20)
+  9  , created_by		   NUMBER	CONSTRAINT nn_system_user_lab_4 NOT NULL
+ 10  , creation_date		   DATE 	CONSTRAINT nn_system_user_lab_5 NOT NULL
+ 11  , last_updated_by		   NUMBER	CONSTRAINT nn_system_user_lab_6 NOT NULL
+ 12  , last_update_date 	   DATE 	CONSTRAINT nn_system_user_lab_7 NOT NULL
+ 13  , CONSTRAINT pk_system_user_lab_1 PRIMARY KEY(system_user_lab_id));
+
+Table created.
+
+SQL> 
+SQL> -- Create sequence.
+SQL> CREATE SEQUENCE system_user_lab_s1 START WITH 1001;
+
+Sequence created.
+
+SQL> 
+SQL> -- Seed initial record in the SYSTEM_USER table.
+SQL> INSERT INTO system_user_lab
+  2  ( system_user_lab_id
+  3  , system_user_name
+  4  , system_user_group_id
+  5  , system_user_type
+  6  , created_by
+  7  , creation_date
+  8  , last_updated_by
+  9  , last_update_date)
+ 10  VALUES
+ 11  ( 1,'SYSADMIN', 1, 1, 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Alter SYSTEM_USER table to include self-referencing foreign key constraints.
+SQL> -- ------------------------------------------------------------------
+SQL> ALTER TABLE system_user_lab
+  2  ADD CONSTRAINT fk_system_user_lab_1 FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id);
+
+Table altered.
+
+SQL> 
+SQL> ALTER TABLE system_user_lab
+  2  ADD CONSTRAINT fk_system_user_lab_2 FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id);
+
+Table altered.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify completion of step 1
+SQL> -- ------------------------------------------------------------------
+SQL> SET NULL ''
+SQL> COLUMN table_name	 FORMAT A16
+SQL> COLUMN column_id	 FORMAT 9999
+SQL> COLUMN column_name  FORMAT A22
+SQL> COLUMN data_type	 FORMAT A12
+SQL> SELECT   table_name
+  2  ,	      column_id
+  3  ,	      column_name
+  4  ,	      CASE
+  5  		WHEN nullable = 'N' THEN 'NOT NULL'
+  6  		ELSE ''
+  7  	      END AS nullable
+  8  ,	      CASE
+  9  		WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+ 10  		  data_type||'('||data_length||')'
+ 11  		ELSE
+ 12  		  data_type
+ 13  	      END AS data_type
+ 14  FROM     user_tab_columns
+ 15  WHERE    table_name = 'SYSTEM_USER_LAB'
+ 16  ORDER BY 2;
+
+                           Column                                               
+TABLE_NAME       COLUMN_ID Name                   NULLABLE DATA_TYPE            
+---------------- --------- ---------------------- -------- ------------         
+SYSTEM_USER_LAB          1 SYSTEM_USER_LAB_ID     NOT NULL NUMBER(22)           
+SYSTEM_USER_LAB          2 SYSTEM_USER_NAME       NOT NULL VARCHAR2(20)         
+SYSTEM_USER_LAB          3 SYSTEM_USER_GROUP_ID   NOT NULL NUMBER(22)           
+SYSTEM_USER_LAB          4 SYSTEM_USER_TYPE       NOT NULL NUMBER(22)           
+SYSTEM_USER_LAB          5 FIRST_NAME                      VARCHAR2(20)         
+SYSTEM_USER_LAB          6 MIDDLE_NAME                     VARCHAR2(20)         
+SYSTEM_USER_LAB          7 LAST_NAME                       VARCHAR2(20)         
+SYSTEM_USER_LAB          8 CREATED_BY             NOT NULL NUMBER(22)           
+SYSTEM_USER_LAB          9 CREATION_DATE          NOT NULL DATE                 
+SYSTEM_USER_LAB         10 LAST_UPDATED_BY        NOT NULL NUMBER(22)           
+SYSTEM_USER_LAB         11 LAST_UPDATE_DATE       NOT NULL DATE                 
+
+11 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify constraints of step 1
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN constraint_name   FORMAT A22
+SQL> COLUMN search_condition  FORMAT A36
+SQL> COLUMN constraint_type   FORMAT A1
+SQL> SELECT   uc.constraint_name
+  2  ,	      uc.search_condition
+  3  ,	      uc.constraint_type
+  4  FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+  5  ON       uc.table_name = ucc.table_name
+  6  AND      uc.constraint_name = ucc.constraint_name
+  7  WHERE    uc.table_name = UPPER('system_user_lab')
+  8  AND      uc.constraint_type = UPPER('c')
+  9  ORDER BY uc.constraint_name;
+
+CONSTRAINT_NAME        SEARCH_CONDITION                     C                   
+---------------------- ------------------------------------ -                   
+NN_SYSTEM_USER_LAB_1   "SYSTEM_USER_NAME" IS NOT NULL       C                   
+NN_SYSTEM_USER_LAB_2   "SYSTEM_USER_GROUP_ID" IS NOT NULL   C                   
+NN_SYSTEM_USER_LAB_3   "SYSTEM_USER_TYPE" IS NOT NULL       C                   
+NN_SYSTEM_USER_LAB_4   "CREATED_BY" IS NOT NULL             C                   
+NN_SYSTEM_USER_LAB_5   "CREATION_DATE" IS NOT NULL          C                   
+NN_SYSTEM_USER_LAB_6   "LAST_UPDATED_BY" IS NOT NULL        C                   
+NN_SYSTEM_USER_LAB_7   "LAST_UPDATE_DATE" IS NOT NULL       C                   
+
+7 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify foreign keys of step 1
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A40 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.POSITION = ucc2.POSITION -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = 'SYSTEM_USER_LAB'
+ 13  ORDER BY ucc1.table_name
+ 14  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- ---------------------------------------- 
+FK_SYSTEM_USER_LAB_1                   REFERENCES                               
+(SYSTEM_USER_LAB.CREATED_BY)           (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+FK_SYSTEM_USER_LAB_2                   REFERENCES                               
+(SYSTEM_USER_LAB.LAST_UPDATED_BY)      (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+
+2 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Create unique index for step 1
+SQL> -- ------------------------------------------------------------------
+SQL> CREATE INDEX uq_system_user_lab_1
+  2  ON system_user_lab (system_user_name);
+
+Index created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Display unique constants of step 1
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN index_name FORMAT A20 HEADING "Index Name"
+SQL> SELECT   index_name
+  2  FROM     user_indexes
+  3  WHERE    TABLE_NAME = UPPER('system_user_lab');
+
+Index Name                                                                      
+--------------------                                                            
+PK_SYSTEM_USER_LAB_1                                                            
+UQ_SYSTEM_USER_LAB_1                                                            
+
+2 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Insert row for step 1
+SQL> -- ------------------------------------------------------------------
+SQL> INSERT INTO system_user_lab
+  2  ( system_user_lab_id
+  3  , system_user_name
+  4  , system_user_group_id
+  5  , system_user_type
+  6  , created_by
+  7  , creation_date
+  8  , last_updated_by
+  9  , last_update_date)
+ 10  VALUES
+ 11  ( 1001,'SYSADMIN', 1001, 1001, 1001, SYSDATE, 1001, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequence of step 1
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name FORMAT A20 HEADING "Sequence Name"
+SQL> SELECT   sequence_name
+  2  FROM     user_sequences
+  3  WHERE    sequence_name = UPPER('system_user_lab_s1');
+
+Sequence Name                                                                   
+--------------------                                                            
+SYSTEM_USER_LAB_S1                                                              
+
+1 row selected.
+
+SQL> 
+SQL> 
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- STEP 2: Create COMMON_LOOKUP table and sequence and seed data.
+SQL> -- ------------------------------------------------------------------
+SQL> -- Conditionally drop table and sequence.
+SQL> BEGIN
+  2    FOR i IN (SELECT null FROM user_tables WHERE table_name = 'COMMON_LOOKUP_LAB') LOOP
+  3  	 EXECUTE IMMEDIATE 'DROP TABLE common_lookup_lab CASCADE CONSTRAINTS';
+  4    END LOOP;
+  5    FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'COMMON_LOOKUP_LAB_S1') LOOP
+  6  	 EXECUTE IMMEDIATE 'DROP SEQUENCE common_lookup_lab_s1';
+  7    END LOOP;
+  8  END;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> -- Create table.
+SQL> -- Primary key constraint PK_C_LOOKUP_LAB_1 creates index based on COMMON_LOOKUP_LAB_ID preventing user from
+SQL> --    creating identical index named COMMON_LOOKUP_LAB_1
+SQL> CREATE TABLE common_lookup_lab
+  2  ( common_lookup_lab_id	       NUMBER
+  3  , common_lookup_context	   VARCHAR2(30) CONSTRAINT nn_clookup_lab_1 NOT NULL
+  4  , common_lookup_type	   VARCHAR2(30) CONSTRAINT nn_clookup_lab_2 NOT NULL
+  5  , common_lookup_meaning	   VARCHAR2(30) CONSTRAINT nn_clookup_lab_3 NOT NULL
+  6  , created_by		   NUMBER	CONSTRAINT nn_clookup_lab_4 NOT NULL
+  7  , creation_date		   DATE 	CONSTRAINT nn_clookup_lab_5 NOT NULL
+  8  , last_updated_by		   NUMBER	CONSTRAINT nn_clookup_lab_6 NOT NULL
+  9  , last_update_date 	   DATE 	CONSTRAINT nn_clookup_lab_7 NOT NULL
+ 10  , CONSTRAINT pk_c_lookup_lab_1    PRIMARY KEY(common_lookup_lab_id)
+ 11  , CONSTRAINT fk_c_lookup_lab_1    FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+ 12  , CONSTRAINT fk_c_lookup_lab_2    FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));
+
+Table created.
+
+SQL> 
+SQL> -- Included in create_oracle_store.sql, but was also asked to be added by student
+SQL> -- Create a non-unique index.
+SQL> --CREATE INDEX common_lookup_lab_n1
+SQL> --  ON common_lookup_lab(common_lookup_context);
+SQL> 
+SQL> -- Included in create_oracle_store.sql, but was also asked to be added by student with the name of COMMON_LOOKUP_LAB_U1
+SQL> -- Create a unique index.
+SQL> --CREATE UNIQUE INDEX common_lookup_lab_u2
+SQL> --  ON common_lookup_lab(common_lookup_context,common_lookup_type);
+SQL> 
+SQL> -- Create a sequence.
+SQL> CREATE SEQUENCE common_lookup_lab_s1 START WITH 1001;
+
+Sequence created.
+
+SQL> 
+SQL> -- Seed the COMMON_LOOKUP table with 18 records.
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( 1,'SYSTEM_USER_LAB','SYSTEM_ADMIN','System Administrator', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( 2,'SYSTEM_USER_LAB','DBA','Database Administrator', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'CONTACT_LAB','EMPLOYEE','Employee', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'CONTACT_LAB','CUSTOMER','Customer', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'MEMBER_LAB','INDIVIDUAL','Individual Membership', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'MEMBER_LAB','GROUP','Group Membership', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'MEMBER_LAB','DISCOVER_CARD','Discover Card', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'MEMBER_LAB','MASTER_CARD','Master Card', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'MEMBER_LAB','VISA_CARD','VISA Card', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'MULTIPLE','HOME','Home', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'MULTIPLE','WORK','Work', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'ITEM_LAB','DVD_FULL_SCREEN','DVD: Full Screen', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'ITEM_LAB','DVD_WIDE_SCREEN','DVD: Wide Screen', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'ITEM_LAB','NINTENDO_GAMECUBE','Nintendo GameCube', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'ITEM_LAB','PLAYSTATION2','PlayStation2', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'ITEM_LAB','XBOX','XBOX', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> INSERT INTO common_lookup_lab VALUES
+  2  ( common_lookup_lab_s1.nextval,'ITEM_LAB','BLU-RAY','Blu-ray', 1, SYSDATE, 1, SYSDATE);
+
+1 row created.
+
+SQL> 
+SQL> -- Changed by user per instruction
+SQL> -- Add a constraint to the SYSTEM_USER table dependent on the COMMON_LOOKUP table.
+SQL> -- ALTER TABLE system_user_lab
+SQL> -- ADD CONSTRAINT fk_system_user_lab_3 FOREIGN KEY(system_user_type)
+SQL> --     REFERENCES common_lookup_lab(common_lookup_lab_id);
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify completion of Step 2
+SQL> -- ------------------------------------------------------------------
+SQL> SET NULL ''
+SQL> COLUMN table_name	 FORMAT A18
+SQL> COLUMN column_id	 FORMAT 9999
+SQL> COLUMN column_name  FORMAT A22
+SQL> COLUMN data_type	 FORMAT A12
+SQL> SELECT   table_name
+  2  ,	      column_id
+  3  ,	      column_name
+  4  ,	      CASE
+  5  		WHEN nullable = 'N' THEN 'NOT NULL'
+  6  		ELSE ''
+  7  	      END AS nullable
+  8  ,	      CASE
+  9  		WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+ 10  		  data_type||'('||data_length||')'
+ 11  		ELSE
+ 12  		  data_type
+ 13  	      END AS data_type
+ 14  FROM     user_tab_columns
+ 15  WHERE    table_name = 'COMMON_LOOKUP_LAB'
+ 16  ORDER BY 2;
+
+                             Column                                             
+TABLE_NAME         COLUMN_ID Name                   NULLABLE DATA_TYPE          
+------------------ --------- ---------------------- -------- ------------       
+COMMON_LOOKUP_LAB          1 COMMON_LOOKUP_LAB_ID   NOT NULL NUMBER(22)         
+COMMON_LOOKUP_LAB          2 COMMON_LOOKUP_CONTEXT  NOT NULL VARCHAR2(30)       
+COMMON_LOOKUP_LAB          3 COMMON_LOOKUP_TYPE     NOT NULL VARCHAR2(30)       
+COMMON_LOOKUP_LAB          4 COMMON_LOOKUP_MEANING  NOT NULL VARCHAR2(30)       
+COMMON_LOOKUP_LAB          5 CREATED_BY             NOT NULL NUMBER(22)         
+COMMON_LOOKUP_LAB          6 CREATION_DATE          NOT NULL DATE               
+COMMON_LOOKUP_LAB          7 LAST_UPDATED_BY        NOT NULL NUMBER(22)         
+COMMON_LOOKUP_LAB          8 LAST_UPDATE_DATE       NOT NULL DATE               
+
+8 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify constraints of step 2
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN constraint_name   FORMAT A22
+SQL> COLUMN search_condition  FORMAT A36
+SQL> COLUMN constraint_type   FORMAT A1
+SQL> SELECT   uc.constraint_name
+  2  ,	      uc.search_condition
+  3  ,	      uc.constraint_type
+  4  FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+  5  ON       uc.table_name = ucc.table_name
+  6  AND      uc.constraint_name = ucc.constraint_name
+  7  WHERE    uc.table_name = UPPER('common_lookup_lab')
+  8  AND      uc.constraint_type IN (UPPER('c'),UPPER('p'))
+  9  ORDER BY uc.constraint_type DESC
+ 10  ,	      uc.constraint_name;
+
+CONSTRAINT_NAME        SEARCH_CONDITION                     C                   
+---------------------- ------------------------------------ -                   
+PK_C_LOOKUP_LAB_1                                           P                   
+NN_CLOOKUP_LAB_1       "COMMON_LOOKUP_CONTEXT" IS NOT NULL  C                   
+NN_CLOOKUP_LAB_2       "COMMON_LOOKUP_TYPE" IS NOT NULL     C                   
+NN_CLOOKUP_LAB_3       "COMMON_LOOKUP_MEANING" IS NOT NULL  C                   
+NN_CLOOKUP_LAB_4       "CREATED_BY" IS NOT NULL             C                   
+NN_CLOOKUP_LAB_5       "CREATION_DATE" IS NOT NULL          C                   
+NN_CLOOKUP_LAB_6       "LAST_UPDATED_BY" IS NOT NULL        C                   
+NN_CLOOKUP_LAB_7       "LAST_UPDATE_DATE" IS NOT NULL       C                   
+
+8 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify foreign keys of step 2
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A40 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.POSITION = ucc2.POSITION -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = 'COMMON_LOOKUP_LAB'
+ 13  ORDER BY ucc1.table_name
+ 14  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- ---------------------------------------- 
+FK_C_LOOKUP_LAB_1                      REFERENCES                               
+(COMMON_LOOKUP_LAB.CREATED_BY)         (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+FK_C_LOOKUP_LAB_2                      REFERENCES                               
+(COMMON_LOOKUP_LAB.LAST_UPDATED_BY)    (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+
+2 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Create a unique index for step 2
+SQL> -- ------------------------------------------------------------------
+SQL> CREATE UNIQUE INDEX common_lookup_lab_u1
+  2    ON common_lookup_lab(common_lookup_context,common_lookup_type);
+
+Index created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Create a non-unique index for step 2
+SQL> -- ------------------------------------------------------------------
+SQL> CREATE INDEX common_lookup_lab_n1
+  2    ON common_lookup_lab(common_lookup_context);
+
+Index created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify index of step 2
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name   FORMAT A22 HEADING "Sequence Name"
+SQL> COLUMN column_position FORMAT 999 HEADING "Column|Position"
+SQL> COLUMN column_name     FORMAT A22 HEADING "Column|Name"
+SQL> SELECT   ui.index_name
+  2  ,	      uic.column_position
+  3  ,	      uic.column_name
+  4  FROM     user_indexes ui INNER JOIN user_ind_columns uic
+  5  ON       ui.index_name = uic.index_name
+  6  AND      ui.table_name = uic.table_name
+  7  WHERE    ui.table_name = UPPER('common_lookup_lab')
+  8  ORDER BY ui.index_name
+  9  ,	      uic.column_position;
+
+                       Column Column                                            
+Index Name           Position Name                                              
+-------------------- -------- ----------------------                            
+COMMON_LOOKUP_LAB_N1        1 COMMON_LOOKUP_CONTEXT                             
+COMMON_LOOKUP_LAB_U1        1 COMMON_LOOKUP_CONTEXT                             
+COMMON_LOOKUP_LAB_U1        2 COMMON_LOOKUP_TYPE                                
+PK_C_LOOKUP_LAB_1           1 COMMON_LOOKUP_LAB_ID                              
+
+4 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequence of step 2
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name FORMAT A20 HEADING "Sequence Name"
+SQL> SELECT   sequence_name
+  2  FROM     user_sequences
+  3  WHERE    sequence_name = UPPER('common_lookup_lab_s1');
+
+Sequence Name                                                                   
+--------------------                                                            
+COMMON_LOOKUP_LAB_S1                                                            
+
+1 row selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Create foreign keys for step 2
+SQL> -- ------------------------------------------------------------------
+SQL> ALTER TABLE system_user_lab
+  2  ADD CONSTRAINT fk_system_user_lab_3 FOREIGN KEY(system_user_group_id)
+  3  	 REFERENCES common_lookup_lab(common_lookup_lab_id);
+
+Table altered.
+
+SQL> 
+SQL> ALTER TABLE system_user_lab
+  2  ADD CONSTRAINT fk_system_user_lab_4 FOREIGN KEY(system_user_type)
+  3  	 REFERENCES common_lookup_lab(common_lookup_lab_id);
+
+Table altered.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify 2 missing SYSTEM_USER_LAB foreign key contraints
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A40 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.position = ucc2.position -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = UPPER('system_user_lab')
+ 13  AND      ucc2.table_name = UPPER('common_lookup_lab')
+ 14  ORDER BY ucc1.table_name
+ 15  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- ---------------------------------------- 
+FK_SYSTEM_USER_LAB_3                   REFERENCES                               
+(SYSTEM_USER_LAB.SYSTEM_USER_GROUP_ID) (COMMON_LOOKUP_LAB.COMMON_LOOKUP_LAB_ID) 
+                                                                                
+FK_SYSTEM_USER_LAB_4                   REFERENCES                               
+(SYSTEM_USER_LAB.SYSTEM_USER_TYPE)     (COMMON_LOOKUP_LAB.COMMON_LOOKUP_LAB_ID) 
+                                                                                
+
+2 rows selected.
+
+SQL> 
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Step 3: Create MEMBER table and sequence and seed data.
+SQL> -- ------------------------------------------------------------------
+SQL> -- Conditionally drop table and sequence.
+SQL> BEGIN
+  2    FOR i IN (SELECT null FROM user_tables WHERE table_name = 'MEMBER_LAB') LOOP
+  3  	 EXECUTE IMMEDIATE 'DROP TABLE member_lab CASCADE CONSTRAINTS';
+  4    END LOOP;
+  5    FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'MEMBER_LAB_S1') LOOP
+  6  	 EXECUTE IMMEDIATE 'DROP SEQUENCE member_lab_s1';
+  7    END LOOP;
+  8  END;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> -- Create table.
+SQL> CREATE TABLE member_lab
+  2  ( member_lab_id		       NUMBER
+  3  , member_type		   NUMBER	CONSTRAINT nn_member_lab_1 NOT NULL
+  4  , account_number		   VARCHAR2(10) CONSTRAINT nn_member_lab_2 NOT NULL
+  5  , credit_card_number	   VARCHAR2(19) CONSTRAINT nn_member_lab_3 NOT NULL
+  6  , credit_card_type 	   NUMBER	CONSTRAINT nn_member_lab_4 NOT NULL
+  7  , created_by		   NUMBER	CONSTRAINT nn_member_lab_5 NOT NULL
+  8  , creation_date		   DATE 	CONSTRAINT nn_member_lab_6 NOT NULL
+  9  , last_updated_by		   NUMBER	CONSTRAINT nn_member_lab_7 NOT NULL
+ 10  , last_update_date 	   DATE 	CONSTRAINT nn_member_lab_8 NOT NULL
+ 11  , CONSTRAINT pk_member_lab_1      PRIMARY KEY(member_lab_id)
+ 12  , CONSTRAINT fk_member_lab_1      FOREIGN KEY(member_type) REFERENCES common_lookup_lab(common_lookup_lab_id)
+ 13  , CONSTRAINT fk_member_lab_2      FOREIGN KEY(credit_card_type) REFERENCES common_lookup_lab(common_lookup_lab_id)
+ 14  , CONSTRAINT fk_member_lab_3      FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+ 15  , CONSTRAINT fk_member_lab_4      FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));
+
+Table created.
+
+SQL> 
+SQL> -- Create a non-unique index.
+SQL>  CREATE INDEX member_lab_n1 ON member_lab(credit_card_type);
+
+Index created.
+
+SQL> 
+SQL> -- Create a sequence.
+SQL> CREATE SEQUENCE member_lab_s1 START WITH 1001;
+
+Sequence created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify completion of Step 3
+SQL> -- ------------------------------------------------------------------
+SQL> SET NULL ''
+SQL> COLUMN table_name	 FORMAT A18
+SQL> COLUMN column_id	 FORMAT 9999
+SQL> COLUMN column_name  FORMAT A22
+SQL> COLUMN data_type	 FORMAT A12
+SQL> SELECT   table_name
+  2  ,	      column_id
+  3  ,	      column_name
+  4  ,	      CASE
+  5  		WHEN nullable = 'N' THEN 'NOT NULL'
+  6  		ELSE ''
+  7  	      END AS nullable
+  8  ,	      CASE
+  9  		WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+ 10  		  data_type||'('||data_length||')'
+ 11  		ELSE
+ 12  		  data_type
+ 13  	      END AS data_type
+ 14  FROM     user_tab_columns
+ 15  WHERE    table_name = 'MEMBER_LAB'
+ 16  ORDER BY 2;
+
+                             Column                                             
+TABLE_NAME         COLUMN_ID Name                   NULLABLE DATA_TYPE          
+------------------ --------- ---------------------- -------- ------------       
+MEMBER_LAB                 1 MEMBER_LAB_ID          NOT NULL NUMBER(22)         
+MEMBER_LAB                 2 MEMBER_TYPE            NOT NULL NUMBER(22)         
+MEMBER_LAB                 3 ACCOUNT_NUMBER         NOT NULL VARCHAR2(10)       
+MEMBER_LAB                 4 CREDIT_CARD_NUMBER     NOT NULL VARCHAR2(19)       
+MEMBER_LAB                 5 CREDIT_CARD_TYPE       NOT NULL NUMBER(22)         
+MEMBER_LAB                 6 CREATED_BY             NOT NULL NUMBER(22)         
+MEMBER_LAB                 7 CREATION_DATE          NOT NULL DATE               
+MEMBER_LAB                 8 LAST_UPDATED_BY        NOT NULL NUMBER(22)         
+MEMBER_LAB                 9 LAST_UPDATE_DATE       NOT NULL DATE               
+
+9 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify constraints of step 3
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN constraint_name   FORMAT A22
+SQL> COLUMN search_condition  FORMAT A36
+SQL> COLUMN constraint_type   FORMAT A1
+SQL> SELECT   uc.constraint_name
+  2  ,	      uc.search_condition
+  3  ,	      uc.constraint_type
+  4  FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+  5  ON       uc.table_name = ucc.table_name
+  6  AND      uc.constraint_name = ucc.constraint_name
+  7  WHERE    uc.table_name = UPPER('member_lab')
+  8  AND      uc.constraint_type IN (UPPER('c'),UPPER('p'))
+  9  ORDER BY uc.constraint_type DESC
+ 10  ,	      uc.constraint_name;
+
+CONSTRAINT_NAME        SEARCH_CONDITION                     C                   
+---------------------- ------------------------------------ -                   
+PK_MEMBER_LAB_1                                             P                   
+NN_MEMBER_LAB_1        "MEMBER_TYPE" IS NOT NULL            C                   
+NN_MEMBER_LAB_2        "ACCOUNT_NUMBER" IS NOT NULL         C                   
+NN_MEMBER_LAB_3        "CREDIT_CARD_NUMBER" IS NOT NULL     C                   
+NN_MEMBER_LAB_4        "CREDIT_CARD_TYPE" IS NOT NULL       C                   
+NN_MEMBER_LAB_5        "CREATED_BY" IS NOT NULL             C                   
+NN_MEMBER_LAB_6        "CREATION_DATE" IS NOT NULL          C                   
+NN_MEMBER_LAB_7        "LAST_UPDATED_BY" IS NOT NULL        C                   
+NN_MEMBER_LAB_8        "LAST_UPDATE_DATE" IS NOT NULL       C                   
+
+9 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify 4 foreign key constraints
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A40 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.POSITION = ucc2.POSITION -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = 'MEMBER_LAB'
+ 13  ORDER BY ucc1.table_name
+ 14  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- ---------------------------------------- 
+FK_MEMBER_LAB_1                        REFERENCES                               
+(MEMBER_LAB.MEMBER_TYPE)               (COMMON_LOOKUP_LAB.COMMON_LOOKUP_LAB_ID) 
+                                                                                
+FK_MEMBER_LAB_2                        REFERENCES                               
+(MEMBER_LAB.CREDIT_CARD_TYPE)          (COMMON_LOOKUP_LAB.COMMON_LOOKUP_LAB_ID) 
+                                                                                
+FK_MEMBER_LAB_3                        REFERENCES                               
+(MEMBER_LAB.CREATED_BY)                (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+FK_MEMBER_LAB_4                        REFERENCES                               
+(MEMBER_LAB.LAST_UPDATED_BY)           (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+
+4 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Create non-unique index for step 3
+SQL> -- ------------------------------------------------------------------
+SQL> -- completed by create_oracle_store.sql
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify non-unique index of step 3
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name   FORMAT A22 HEADING "Sequence Name"
+SQL> COLUMN column_position FORMAT 999 HEADING "Column|Position"
+SQL> COLUMN column_name     FORMAT A22 HEADING "Column|Name"
+SQL> SELECT   ui.index_name
+  2  ,	      uic.column_position
+  3  ,	      uic.column_name
+  4  FROM     user_indexes ui INNER JOIN user_ind_columns uic
+  5  ON       ui.index_name = uic.index_name
+  6  AND      ui.table_name = uic.table_name
+  7  WHERE    ui.table_name = UPPER('member_lab')
+  8  AND NOT  ui.index_name IN (SELECT constraint_name
+  9  				FROM   user_constraints)
+ 10  ORDER BY ui.index_name
+ 11  ,	      uic.column_position;
+
+                       Column Column                                            
+Index Name           Position Name                                              
+-------------------- -------- ----------------------                            
+MEMBER_LAB_N1               1 CREDIT_CARD_TYPE                                  
+
+1 row selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequence of step 3
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name FORMAT A20 HEADING "Sequence Name"
+SQL> SELECT   sequence_name
+  2  FROM     user_sequences
+  3  WHERE    sequence_name = UPPER('member_lab_s1');
+
+Sequence Name                                                                   
+--------------------                                                            
+MEMBER_LAB_S1                                                                   
+
+1 row selected.
+
+SQL> 
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Step 4: Create CONTACT table and sequence and seed data.
+SQL> -- ------------------------------------------------------------------
+SQL> -- Conditionally drop objects.
+SQL> BEGIN
+  2    FOR i IN (SELECT null FROM user_tables WHERE table_name = 'CONTACT_LAB') LOOP
+  3  	 EXECUTE IMMEDIATE 'DROP TABLE contact_lab CASCADE CONSTRAINTS';
+  4    END LOOP;
+  5    FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'CONTACT_LAB_S1') LOOP
+  6  	 EXECUTE IMMEDIATE 'DROP SEQUENCE contact_lab_s1';
+  7    END LOOP;
+  8  END;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> -- Create table.
+SQL> CREATE TABLE contact_lab
+  2  ( contact_lab_id		       NUMBER
+  3  , member_lab_id		       NUMBER	    CONSTRAINT nn_contact_lab_1 NOT NULL
+  4  , contact_type		   NUMBER	CONSTRAINT nn_contact_lab_2 NOT NULL
+  5  , first_name		   VARCHAR2(20) CONSTRAINT nn_contact_lab_3 NOT NULL
+  6  , middle_name		   VARCHAR2(20)
+  7  , last_name		   VARCHAR2(20) CONSTRAINT nn_contact_lab_4 NOT NULL
+  8  , created_by		   NUMBER	CONSTRAINT nn_contact_lab_5 NOT NULL
+  9  , creation_date		   DATE 	CONSTRAINT nn_contact_lab_6 NOT NULL
+ 10  , last_updated_by		   NUMBER	CONSTRAINT nn_contact_lab_7 NOT NULL
+ 11  , last_update_date 	   DATE 	CONSTRAINT nn_contact_lab_8 NOT NULL
+ 12  , CONSTRAINT pk_contact_lab_1     PRIMARY KEY(contact_lab_id)
+ 13  , CONSTRAINT fk_contact_lab_1     FOREIGN KEY(member_lab_id) REFERENCES member_lab(member_lab_id)
+ 14  , CONSTRAINT fk_contact_lab_2     FOREIGN KEY(contact_type) REFERENCES common_lookup_lab(common_lookup_lab_id)
+ 15  , CONSTRAINT fk_contact_lab_3     FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+ 16  , CONSTRAINT fk_contact_lab_4     FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));
+
+Table created.
+
+SQL> 
+SQL> -- Create non-unique index.
+SQL> CREATE INDEX contact_lab_n1 ON contact_lab(member_lab_id);
+
+Index created.
+
+SQL> CREATE INDEX contact_lab_n2 ON contact_lab(contact_type);
+
+Index created.
+
+SQL> 
+SQL> -- Create sequence.
+SQL> CREATE SEQUENCE contact_lab_s1 START WITH 1001;
+
+Sequence created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify completion of step 4
+SQL> -- ------------------------------------------------------------------
+SQL> SET NULL ''
+SQL> COLUMN table_name	 FORMAT A18
+SQL> COLUMN column_id	 FORMAT 9999
+SQL> COLUMN column_name  FORMAT A22
+SQL> COLUMN data_type	 FORMAT A12
+SQL> SELECT   table_name
+  2  ,	      column_id
+  3  ,	      column_name
+  4  ,	      CASE
+  5  		WHEN nullable = 'N' THEN 'NOT NULL'
+  6  		ELSE ''
+  7  	      END AS nullable
+  8  ,	      CASE
+  9  		WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+ 10  		  data_type||'('||data_length||')'
+ 11  		ELSE
+ 12  		  data_type
+ 13  	      END AS data_type
+ 14  FROM     user_tab_columns
+ 15  WHERE    table_name = 'CONTACT_LAB'
+ 16  ORDER BY 2;
+
+                             Column                                             
+TABLE_NAME         COLUMN_ID Name                   NULLABLE DATA_TYPE          
+------------------ --------- ---------------------- -------- ------------       
+CONTACT_LAB                1 CONTACT_LAB_ID         NOT NULL NUMBER(22)         
+CONTACT_LAB                2 MEMBER_LAB_ID          NOT NULL NUMBER(22)         
+CONTACT_LAB                3 CONTACT_TYPE           NOT NULL NUMBER(22)         
+CONTACT_LAB                4 FIRST_NAME             NOT NULL VARCHAR2(20)       
+CONTACT_LAB                5 MIDDLE_NAME                     VARCHAR2(20)       
+CONTACT_LAB                6 LAST_NAME              NOT NULL VARCHAR2(20)       
+CONTACT_LAB                7 CREATED_BY             NOT NULL NUMBER(22)         
+CONTACT_LAB                8 CREATION_DATE          NOT NULL DATE               
+CONTACT_LAB                9 LAST_UPDATED_BY        NOT NULL NUMBER(22)         
+CONTACT_LAB               10 LAST_UPDATE_DATE       NOT NULL DATE               
+
+10 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify constraints of step 4
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN constraint_name   FORMAT A22
+SQL> COLUMN search_condition  FORMAT A36
+SQL> COLUMN constraint_type   FORMAT A1
+SQL> SELECT   uc.constraint_name
+  2  ,	      uc.search_condition
+  3  ,	      uc.constraint_type
+  4  FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+  5  ON       uc.table_name = ucc.table_name
+  6  AND      uc.constraint_name = ucc.constraint_name
+  7  WHERE    uc.table_name = UPPER('contact_lab')
+  8  AND      uc.constraint_type IN (UPPER('c'),UPPER('p'))
+  9  ORDER BY uc.constraint_type DESC
+ 10  ,	      uc.constraint_name;
+
+CONSTRAINT_NAME        SEARCH_CONDITION                     C                   
+---------------------- ------------------------------------ -                   
+PK_CONTACT_LAB_1                                            P                   
+NN_CONTACT_LAB_1       "MEMBER_LAB_ID" IS NOT NULL          C                   
+NN_CONTACT_LAB_2       "CONTACT_TYPE" IS NOT NULL           C                   
+NN_CONTACT_LAB_3       "FIRST_NAME" IS NOT NULL             C                   
+NN_CONTACT_LAB_4       "LAST_NAME" IS NOT NULL              C                   
+NN_CONTACT_LAB_5       "CREATED_BY" IS NOT NULL             C                   
+NN_CONTACT_LAB_6       "CREATION_DATE" IS NOT NULL          C                   
+NN_CONTACT_LAB_7       "LAST_UPDATED_BY" IS NOT NULL        C                   
+NN_CONTACT_LAB_8       "LAST_UPDATE_DATE" IS NOT NULL       C                   
+
+9 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify foreign keys of step 4
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A40 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.POSITION = ucc2.POSITION -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = 'CONTACT_LAB'
+ 13  ORDER BY ucc1.table_name
+ 14  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- ---------------------------------------- 
+FK_CONTACT_LAB_1                       REFERENCES                               
+(CONTACT_LAB.MEMBER_LAB_ID)            (MEMBER_LAB.MEMBER_LAB_ID)               
+                                                                                
+FK_CONTACT_LAB_2                       REFERENCES                               
+(CONTACT_LAB.CONTACT_TYPE)             (COMMON_LOOKUP_LAB.COMMON_LOOKUP_LAB_ID) 
+                                                                                
+FK_CONTACT_LAB_3                       REFERENCES                               
+(CONTACT_LAB.CREATED_BY)               (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+FK_CONTACT_LAB_4                       REFERENCES                               
+(CONTACT_LAB.LAST_UPDATED_BY)          (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+
+4 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Create non-unique index for step 4
+SQL> -- ------------------------------------------------------------------
+SQL> -- completed by create_oracle_store.sql
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify non-unique index of step 4
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name   FORMAT A22 HEADING "Sequence Name"
+SQL> COLUMN column_position FORMAT 999 HEADING "Column|Position"
+SQL> COLUMN column_name     FORMAT A22 HEADING "Column|Name"
+SQL> SELECT   ui.index_name
+  2  ,	      uic.column_position
+  3  ,	      uic.column_name
+  4  FROM     user_indexes ui INNER JOIN user_ind_columns uic
+  5  ON       ui.index_name = uic.index_name
+  6  AND      ui.table_name = uic.table_name
+  7  WHERE    ui.table_name = UPPER('contact_lab')
+  8  AND NOT  ui.index_name IN (SELECT constraint_name
+  9  				FROM   user_constraints)
+ 10  ORDER BY ui.index_name
+ 11  ,	      uic.column_position;
+
+                       Column Column                                            
+Index Name           Position Name                                              
+-------------------- -------- ----------------------                            
+CONTACT_LAB_N1              1 MEMBER_LAB_ID                                     
+CONTACT_LAB_N2              1 CONTACT_TYPE                                      
+
+2 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequence of step 4
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name FORMAT A20 HEADING "Sequence Name"
+SQL> SELECT   sequence_name
+  2  FROM     user_sequences
+  3  WHERE    sequence_name = UPPER('contact_lab_s1');
+
+Sequence Name                                                                   
+--------------------                                                            
+CONTACT_LAB_S1                                                                  
+
+1 row selected.
+
+SQL> 
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Step 5: Create ADDRESS table and sequence.
+SQL> -- ------------------------------------------------------------------
+SQL> -- Conditionally drop objects.
+SQL> BEGIN
+  2    FOR i IN (SELECT null FROM user_tables WHERE table_name = 'ADDRESS_LAB') LOOP
+  3  	 EXECUTE IMMEDIATE 'DROP TABLE address_lab CASCADE CONSTRAINTS';
+  4    END LOOP;
+  5    FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'ADDRESS_LAB_S1') LOOP
+  6  	 EXECUTE IMMEDIATE 'DROP SEQUENCE address_lab_s1';
+  7    END LOOP;
+  8  END;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> -- Create table.
+SQL> CREATE TABLE address_lab
+  2  ( address_lab_id		       NUMBER
+  3  , contact_lab_id		       NUMBER	    CONSTRAINT nn_address_lab_1 NOT NULL
+  4  , address_type		   NUMBER	CONSTRAINT nn_address_lab_2 NOT NULL
+  5  , city			   VARCHAR2(30) CONSTRAINT nn_address_lab_3 NOT NULL
+  6  , state_province		   VARCHAR2(30) CONSTRAINT nn_address_lab_4 NOT NULL
+  7  , postal_code		   VARCHAR2(20) CONSTRAINT nn_address_lab_5 NOT NULL
+  8  , created_by		   NUMBER	CONSTRAINT nn_address_lab_6 NOT NULL
+  9  , creation_date		   DATE 	CONSTRAINT nn_address_lab_7 NOT NULL
+ 10  , last_updated_by		   NUMBER	CONSTRAINT nn_address_lab_8 NOT NULL
+ 11  , last_update_date 	   DATE 	CONSTRAINT nn_address_lab_9 NOT NULL
+ 12  , CONSTRAINT pk_address_lab_1     PRIMARY KEY(address_lab_id)
+ 13  , CONSTRAINT fk_address_lab_1     FOREIGN KEY(contact_lab_id) REFERENCES contact_lab(contact_lab_id)
+ 14  , CONSTRAINT fk_address_lab_2     FOREIGN KEY(address_type) REFERENCES common_lookup_lab(common_lookup_lab_id)
+ 15  , CONSTRAINT fk_address_lab_3     FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+ 16  , CONSTRAINT fk_address_lab_4     FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));
+
+Table created.
+
+SQL> 
+SQL> -- Create a non-unique index.
+SQL> CREATE INDEX address_lab_n1 ON address_lab(contact_lab_id);
+
+Index created.
+
+SQL> CREATE INDEX address_lab_n2 ON address_lab(address_type);
+
+Index created.
+
+SQL> 
+SQL> -- Create a sequence.
+SQL> CREATE SEQUENCE address_lab_s1 START WITH 1001;
+
+Sequence created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify completion of step 5
+SQL> -- ------------------------------------------------------------------
+SQL> SET NULL ''
+SQL> COLUMN table_name	 FORMAT A18
+SQL> COLUMN column_id	 FORMAT 9999
+SQL> COLUMN column_name  FORMAT A22
+SQL> COLUMN data_type	 FORMAT A12
+SQL> SELECT   table_name
+  2  ,	      column_id
+  3  ,	      column_name
+  4  ,	      CASE
+  5  		WHEN nullable = 'N' THEN 'NOT NULL'
+  6  		ELSE ''
+  7  	      END AS nullable
+  8  ,	      CASE
+  9  		WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+ 10  		  data_type||'('||data_length||')'
+ 11  		ELSE
+ 12  		  data_type
+ 13  	      END AS data_type
+ 14  FROM     user_tab_columns
+ 15  WHERE    table_name = 'ADDRESS_LAB'
+ 16  ORDER BY 2;
+
+                             Column                                             
+TABLE_NAME         COLUMN_ID Name                   NULLABLE DATA_TYPE          
+------------------ --------- ---------------------- -------- ------------       
+ADDRESS_LAB                1 ADDRESS_LAB_ID         NOT NULL NUMBER(22)         
+ADDRESS_LAB                2 CONTACT_LAB_ID         NOT NULL NUMBER(22)         
+ADDRESS_LAB                3 ADDRESS_TYPE           NOT NULL NUMBER(22)         
+ADDRESS_LAB                4 CITY                   NOT NULL VARCHAR2(30)       
+ADDRESS_LAB                5 STATE_PROVINCE         NOT NULL VARCHAR2(30)       
+ADDRESS_LAB                6 POSTAL_CODE            NOT NULL VARCHAR2(20)       
+ADDRESS_LAB                7 CREATED_BY             NOT NULL NUMBER(22)         
+ADDRESS_LAB                8 CREATION_DATE          NOT NULL DATE               
+ADDRESS_LAB                9 LAST_UPDATED_BY        NOT NULL NUMBER(22)         
+ADDRESS_LAB               10 LAST_UPDATE_DATE       NOT NULL DATE               
+
+10 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify constraints of step 5
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN constraint_name   FORMAT A22
+SQL> COLUMN search_condition  FORMAT A36
+SQL> COLUMN constraint_type   FORMAT A1
+SQL> SELECT   uc.constraint_name
+  2  ,	      uc.search_condition
+  3  ,	      uc.constraint_type
+  4  FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+  5  ON       uc.table_name = ucc.table_name
+  6  AND      uc.constraint_name = ucc.constraint_name
+  7  WHERE    uc.table_name = UPPER('address_lab')
+  8  AND      uc.constraint_type IN (UPPER('c'),UPPER('p'))
+  9  ORDER BY uc.constraint_type DESC
+ 10  ,	      uc.constraint_name;
+
+CONSTRAINT_NAME        SEARCH_CONDITION                     C                   
+---------------------- ------------------------------------ -                   
+PK_ADDRESS_LAB_1                                            P                   
+NN_ADDRESS_LAB_1       "CONTACT_LAB_ID" IS NOT NULL         C                   
+NN_ADDRESS_LAB_2       "ADDRESS_TYPE" IS NOT NULL           C                   
+NN_ADDRESS_LAB_3       "CITY" IS NOT NULL                   C                   
+NN_ADDRESS_LAB_4       "STATE_PROVINCE" IS NOT NULL         C                   
+NN_ADDRESS_LAB_5       "POSTAL_CODE" IS NOT NULL            C                   
+NN_ADDRESS_LAB_6       "CREATED_BY" IS NOT NULL             C                   
+NN_ADDRESS_LAB_7       "CREATION_DATE" IS NOT NULL          C                   
+NN_ADDRESS_LAB_8       "LAST_UPDATED_BY" IS NOT NULL        C                   
+NN_ADDRESS_LAB_9       "LAST_UPDATE_DATE" IS NOT NULL       C                   
+
+10 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify foreign keys of step 5
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A40 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.POSITION = ucc2.POSITION -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = 'ADDRESS_LAB'
+ 13  ORDER BY ucc1.table_name
+ 14  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- ---------------------------------------- 
+FK_ADDRESS_LAB_1                       REFERENCES                               
+(ADDRESS_LAB.CONTACT_LAB_ID)           (CONTACT_LAB.CONTACT_LAB_ID)             
+                                                                                
+FK_ADDRESS_LAB_2                       REFERENCES                               
+(ADDRESS_LAB.ADDRESS_TYPE)             (COMMON_LOOKUP_LAB.COMMON_LOOKUP_LAB_ID) 
+                                                                                
+FK_ADDRESS_LAB_3                       REFERENCES                               
+(ADDRESS_LAB.CREATED_BY)               (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+FK_ADDRESS_LAB_4                       REFERENCES                               
+(ADDRESS_LAB.LAST_UPDATED_BY)          (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+
+4 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Create non-unique index for step 5
+SQL> -- ------------------------------------------------------------------
+SQL> -- completed in create_oracle_store.sql
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify non-unique index of step 5
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name   FORMAT A22 HEADING "Sequence Name"
+SQL> COLUMN column_position FORMAT 999 HEADING "Column|Position"
+SQL> COLUMN column_name     FORMAT A22 HEADING "Column|Name"
+SQL> SELECT   ui.index_name
+  2  ,	      uic.column_position
+  3  ,	      uic.column_name
+  4  FROM     user_indexes ui INNER JOIN user_ind_columns uic
+  5  ON       ui.index_name = uic.index_name
+  6  AND      ui.table_name = uic.table_name
+  7  WHERE    ui.table_name = UPPER('address_lab')
+  8  AND NOT  ui.index_name IN (SELECT constraint_name
+  9  				FROM   user_constraints)
+ 10  ORDER BY ui.index_name
+ 11  ,	      uic.column_position;
+
+                       Column Column                                            
+Index Name           Position Name                                              
+-------------------- -------- ----------------------                            
+ADDRESS_LAB_N1              1 CONTACT_LAB_ID                                    
+ADDRESS_LAB_N2              1 ADDRESS_TYPE                                      
+
+2 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequence of step 5
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name FORMAT A20 HEADING "Sequence Name"
+SQL> SELECT   sequence_name
+  2  FROM     user_sequences
+  3  WHERE    sequence_name = UPPER('address_lab_s1');
+
+Sequence Name                                                                   
+--------------------                                                            
+ADDRESS_LAB_S1                                                                  
+
+1 row selected.
+
+SQL> 
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Step 6: Create STREET_ADDRESS table and sequence.
+SQL> -- ------------------------------------------------------------------
+SQL> -- Conditionally drop table and sequence.
+SQL> BEGIN
+  2    FOR i IN (SELECT null FROM user_tables WHERE table_name = 'STREET_ADDRESS_LAB') LOOP
+  3  	 EXECUTE IMMEDIATE 'DROP TABLE street_address_lab CASCADE CONSTRAINTS';
+  4    END LOOP;
+  5    FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'STREET_ADDRESS_LAB_S1') LOOP
+  6  	 EXECUTE IMMEDIATE 'DROP SEQUENCE street_address_lab_s1';
+  7    END LOOP;
+  8  END;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> -- Create table.
+SQL> CREATE TABLE street_address_lab
+  2  ( street_address_lab_id	       NUMBER
+  3  , address_lab_id		       NUMBER	    CONSTRAINT nn_saddress_lab_1 NOT NULL
+  4  , street_address		   VARCHAR2(30) CONSTRAINT nn_saddress_lab_2 NOT NULL
+  5  , created_by		   NUMBER	CONSTRAINT nn_saddress_lab_3 NOT NULL
+  6  , creation_date		   DATE 	CONSTRAINT nn_saddress_lab_4 NOT NULL
+  7  , last_updated_by		   NUMBER	CONSTRAINT nn_saddress_lab_5 NOT NULL
+  8  , last_update_date 	   DATE 	CONSTRAINT nn_saddress_lab_6 NOT NULL
+  9  , CONSTRAINT pk_s_address_lab_1   PRIMARY KEY(street_address_lab_id)
+ 10  , CONSTRAINT fk_s_address_lab_1   FOREIGN KEY(address_lab_id) REFERENCES address_lab(address_lab_id)
+ 11  , CONSTRAINT fk_s_address_lab_3   FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+ 12  , CONSTRAINT fk_s_address_lab_4   FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));
+
+Table created.
+
+SQL> 
+SQL> -- Create sequence.
+SQL> CREATE SEQUENCE street_address_lab_s1 START WITH 1001;
+
+Sequence created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify completion of step 6
+SQL> -- ------------------------------------------------------------------
+SQL> SET NULL ''
+SQL> COLUMN table_name	 FORMAT A18
+SQL> COLUMN column_id	 FORMAT 9999
+SQL> COLUMN column_name  FORMAT A22
+SQL> COLUMN data_type	 FORMAT A12
+SQL> SELECT   table_name
+  2  ,	      column_id
+  3  ,	      column_name
+  4  ,	      CASE
+  5  		WHEN nullable = 'N' THEN 'NOT NULL'
+  6  		ELSE ''
+  7  	      END AS nullable
+  8  ,	      CASE
+  9  		WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+ 10  		  data_type||'('||data_length||')'
+ 11  		ELSE
+ 12  		  data_type
+ 13  	      END AS data_type
+ 14  FROM     user_tab_columns
+ 15  WHERE    table_name = 'STREET_ADDRESS_LAB'
+ 16  ORDER BY 2;
+
+                             Column                                             
+TABLE_NAME         COLUMN_ID Name                   NULLABLE DATA_TYPE          
+------------------ --------- ---------------------- -------- ------------       
+STREET_ADDRESS_LAB         1 STREET_ADDRESS_LAB_ID  NOT NULL NUMBER(22)         
+STREET_ADDRESS_LAB         2 ADDRESS_LAB_ID         NOT NULL NUMBER(22)         
+STREET_ADDRESS_LAB         3 STREET_ADDRESS         NOT NULL VARCHAR2(30)       
+STREET_ADDRESS_LAB         4 CREATED_BY             NOT NULL NUMBER(22)         
+STREET_ADDRESS_LAB         5 CREATION_DATE          NOT NULL DATE               
+STREET_ADDRESS_LAB         6 LAST_UPDATED_BY        NOT NULL NUMBER(22)         
+STREET_ADDRESS_LAB         7 LAST_UPDATE_DATE       NOT NULL DATE               
+
+7 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify constraints of step 6
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN constraint_name   FORMAT A22
+SQL> COLUMN search_condition  FORMAT A36
+SQL> COLUMN constraint_type   FORMAT A1
+SQL> SELECT   uc.constraint_name
+  2  ,	      uc.search_condition
+  3  ,	      uc.constraint_type
+  4  FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+  5  ON       uc.table_name = ucc.table_name
+  6  AND      uc.constraint_name = ucc.constraint_name
+  7  WHERE    uc.table_name = UPPER('street_address_lab')
+  8  AND      uc.constraint_type IN (UPPER('c'),UPPER('p'))
+  9  ORDER BY uc.constraint_type DESC
+ 10  ,	      uc.constraint_name;
+
+CONSTRAINT_NAME        SEARCH_CONDITION                     C                   
+---------------------- ------------------------------------ -                   
+PK_S_ADDRESS_LAB_1                                          P                   
+NN_SADDRESS_LAB_1      "ADDRESS_LAB_ID" IS NOT NULL         C                   
+NN_SADDRESS_LAB_2      "STREET_ADDRESS" IS NOT NULL         C                   
+NN_SADDRESS_LAB_3      "CREATED_BY" IS NOT NULL             C                   
+NN_SADDRESS_LAB_4      "CREATION_DATE" IS NOT NULL          C                   
+NN_SADDRESS_LAB_5      "LAST_UPDATED_BY" IS NOT NULL        C                   
+NN_SADDRESS_LAB_6      "LAST_UPDATE_DATE" IS NOT NULL       C                   
+
+7 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify foreign keys of step 6
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A40 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.POSITION = ucc2.POSITION -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = UPPER('street_address_lab')
+ 13  ORDER BY ucc1.table_name
+ 14  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- ---------------------------------------- 
+FK_S_ADDRESS_LAB_1                     REFERENCES                               
+(STREET_ADDRESS_LAB.ADDRESS_LAB_ID)    (ADDRESS_LAB.ADDRESS_LAB_ID)             
+                                                                                
+FK_S_ADDRESS_LAB_3                     REFERENCES                               
+(STREET_ADDRESS_LAB.CREATED_BY)        (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+FK_S_ADDRESS_LAB_4                     REFERENCES                               
+(STREET_ADDRESS_LAB.LAST_UPDATED_BY)   (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+
+3 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequence of step 6
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name FORMAT A22 HEADING "Sequence Name"
+SQL> SELECT   sequence_name
+  2  FROM     user_sequences
+  3  WHERE    sequence_name = UPPER('street_address_lab_s1');
+
+Sequence Name                                                                   
+----------------------                                                          
+STREET_ADDRESS_LAB_S1                                                           
+
+1 row selected.
+
+SQL> 
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Step 7: Create TELEPHONE table and sequence.
+SQL> -- ------------------------------------------------------------------
+SQL> -- Conditionally drop table and sequence.
+SQL> BEGIN
+  2    FOR i IN (SELECT null FROM user_tables WHERE table_name = 'TELEPHONE_LAB') LOOP
+  3  	 EXECUTE IMMEDIATE 'DROP TABLE telephone_lab CASCADE CONSTRAINTS';
+  4    END LOOP;
+  5    FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'TELEPHONE_LAB_S1') LOOP
+  6  	 EXECUTE IMMEDIATE 'DROP SEQUENCE telephone_lab_s1';
+  7    END LOOP;
+  8  END;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> -- Create table.
+SQL> CREATE TABLE telephone_lab
+  2  ( telephone_lab_id 	       NUMBER
+  3  , contact_lab_id		       NUMBER	    CONSTRAINT nn_telephone_lab_1 NOT NULL
+  4  , address_lab_id		       NUMBER
+  5  , telephone_type		   NUMBER	CONSTRAINT nn_telephone_lab_2 NOT NULL
+  6  , country_code		   VARCHAR2(3)	CONSTRAINT nn_telephone_lab_3 NOT NULL
+  7  , area_code		   VARCHAR2(6)	CONSTRAINT nn_telephone_lab_4 NOT NULL
+  8  , telephone_number 	   VARCHAR2(10) CONSTRAINT nn_telephone_lab_5 NOT NULL
+  9  , created_by		   NUMBER	CONSTRAINT nn_telephone_lab_6 NOT NULL
+ 10  , creation_date		   DATE 	CONSTRAINT nn_telephone_lab_7 NOT NULL
+ 11  , last_updated_by		   NUMBER	CONSTRAINT nn_telephone_lab_8 NOT NULL
+ 12  , last_update_date 	   DATE 	CONSTRAINT nn_telephone_lab_9 NOT NULL
+ 13  , CONSTRAINT pk_telephone_lab_1   PRIMARY KEY(telephone_lab_id)
+ 14  , CONSTRAINT fk_telephone_lab_1   FOREIGN KEY(contact_lab_id) REFERENCES contact_lab(contact_lab_id)
+ 15  , CONSTRAINT fk_telephone_lab_2   FOREIGN KEY(telephone_type) REFERENCES common_lookup_lab(common_lookup_lab_id)
+ 16  , CONSTRAINT fk_telephone_lab_3   FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+ 17  , CONSTRAINT fk_telephone_lab_4   FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));
+
+Table created.
+
+SQL> 
+SQL> -- Create non-unique indexes.
+SQL> CREATE INDEX telephone_lab_n1 ON telephone_lab(contact_lab_id,address_lab_id);
+
+Index created.
+
+SQL> CREATE INDEX telephone_lab_n2 ON telephone_lab(address_lab_id);
+
+Index created.
+
+SQL> CREATE INDEX telephone_lab_n3 ON telephone_lab(telephone_type);
+
+Index created.
+
+SQL> 
+SQL> -- Create sequence.
+SQL> CREATE SEQUENCE telephone_lab_s1 START WITH 1001;
+
+Sequence created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify completion of step 7
+SQL> -- ------------------------------------------------------------------
+SQL> SET NULL ''
+SQL> COLUMN table_name	 FORMAT A18
+SQL> COLUMN column_id	 FORMAT 9999
+SQL> COLUMN column_name  FORMAT A22
+SQL> COLUMN data_type	 FORMAT A12
+SQL> SELECT   table_name
+  2  ,	      column_id
+  3  ,	      column_name
+  4  ,	      CASE
+  5  		WHEN nullable = 'N' THEN 'NOT NULL'
+  6  		ELSE ''
+  7  	      END AS nullable
+  8  ,	      CASE
+  9  		WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+ 10  		  data_type||'('||data_length||')'
+ 11  		ELSE
+ 12  		  data_type
+ 13  	      END AS data_type
+ 14  FROM     user_tab_columns
+ 15  WHERE    table_name = 'TELEPHONE_LAB'
+ 16  ORDER BY 2;
+
+                             Column                                             
+TABLE_NAME         COLUMN_ID Name                   NULLABLE DATA_TYPE          
+------------------ --------- ---------------------- -------- ------------       
+TELEPHONE_LAB              1 TELEPHONE_LAB_ID       NOT NULL NUMBER(22)         
+TELEPHONE_LAB              2 CONTACT_LAB_ID         NOT NULL NUMBER(22)         
+TELEPHONE_LAB              3 ADDRESS_LAB_ID                  NUMBER(22)         
+TELEPHONE_LAB              4 TELEPHONE_TYPE         NOT NULL NUMBER(22)         
+TELEPHONE_LAB              5 COUNTRY_CODE           NOT NULL VARCHAR2(3)        
+TELEPHONE_LAB              6 AREA_CODE              NOT NULL VARCHAR2(6)        
+TELEPHONE_LAB              7 TELEPHONE_NUMBER       NOT NULL VARCHAR2(10)       
+TELEPHONE_LAB              8 CREATED_BY             NOT NULL NUMBER(22)         
+TELEPHONE_LAB              9 CREATION_DATE          NOT NULL DATE               
+TELEPHONE_LAB             10 LAST_UPDATED_BY        NOT NULL NUMBER(22)         
+TELEPHONE_LAB             11 LAST_UPDATE_DATE       NOT NULL DATE               
+
+11 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify constraints of step 7
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN constraint_name   FORMAT A22
+SQL> COLUMN search_condition  FORMAT A36
+SQL> COLUMN constraint_type   FORMAT A1
+SQL> SELECT   uc.constraint_name
+  2  ,	      uc.search_condition
+  3  ,	      uc.constraint_type
+  4  FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+  5  ON       uc.table_name = ucc.table_name
+  6  AND      uc.constraint_name = ucc.constraint_name
+  7  WHERE    uc.table_name = UPPER('telephone_lab')
+  8  AND      uc.constraint_type IN (UPPER('c'),UPPER('p'))
+  9  ORDER BY uc.constraint_type DESC
+ 10  ,	      uc.constraint_name;
+
+CONSTRAINT_NAME        SEARCH_CONDITION                     C                   
+---------------------- ------------------------------------ -                   
+PK_TELEPHONE_LAB_1                                          P                   
+NN_TELEPHONE_LAB_1     "CONTACT_LAB_ID" IS NOT NULL         C                   
+NN_TELEPHONE_LAB_2     "TELEPHONE_TYPE" IS NOT NULL         C                   
+NN_TELEPHONE_LAB_3     "COUNTRY_CODE" IS NOT NULL           C                   
+NN_TELEPHONE_LAB_4     "AREA_CODE" IS NOT NULL              C                   
+NN_TELEPHONE_LAB_5     "TELEPHONE_NUMBER" IS NOT NULL       C                   
+NN_TELEPHONE_LAB_6     "CREATED_BY" IS NOT NULL             C                   
+NN_TELEPHONE_LAB_7     "CREATION_DATE" IS NOT NULL          C                   
+NN_TELEPHONE_LAB_8     "LAST_UPDATED_BY" IS NOT NULL        C                   
+NN_TELEPHONE_LAB_9     "LAST_UPDATE_DATE" IS NOT NULL       C                   
+
+10 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify foreign keys of step 7
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A40 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.POSITION = ucc2.POSITION -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = UPPER('telephone_lab')
+ 13  ORDER BY ucc1.table_name
+ 14  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- ---------------------------------------- 
+FK_TELEPHONE_LAB_1                     REFERENCES                               
+(TELEPHONE_LAB.CONTACT_LAB_ID)         (CONTACT_LAB.CONTACT_LAB_ID)             
+                                                                                
+FK_TELEPHONE_LAB_2                     REFERENCES                               
+(TELEPHONE_LAB.TELEPHONE_TYPE)         (COMMON_LOOKUP_LAB.COMMON_LOOKUP_LAB_ID) 
+                                                                                
+FK_TELEPHONE_LAB_3                     REFERENCES                               
+(TELEPHONE_LAB.CREATED_BY)             (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+FK_TELEPHONE_LAB_4                     REFERENCES                               
+(TELEPHONE_LAB.LAST_UPDATED_BY)        (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+
+4 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Create non-unique index for step 7
+SQL> -- ------------------------------------------------------------------
+SQL> -- Completed by create_oracle_store.sql
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify non-unique index on step 7
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name   FORMAT A22 HEADING "Sequence Name"
+SQL> COLUMN column_position FORMAT 999 HEADING "Column|Position"
+SQL> COLUMN column_name     FORMAT A22 HEADING "Column|Name"
+SQL> SELECT   ui.index_name
+  2  ,	      uic.column_position
+  3  ,	      uic.column_name
+  4  FROM     user_indexes ui INNER JOIN user_ind_columns uic
+  5  ON       ui.index_name = uic.index_name
+  6  AND      ui.table_name = uic.table_name
+  7  WHERE    ui.table_name = UPPER('telephone_lab')
+  8  AND NOT  ui.index_name IN (SELECT constraint_name
+  9  				FROM   user_constraints)
+ 10  ORDER BY ui.index_name
+ 11  ,	      uic.column_position;
+
+                       Column Column                                            
+Index Name           Position Name                                              
+-------------------- -------- ----------------------                            
+TELEPHONE_LAB_N1            1 CONTACT_LAB_ID                                    
+TELEPHONE_LAB_N1            2 ADDRESS_LAB_ID                                    
+TELEPHONE_LAB_N2            1 ADDRESS_LAB_ID                                    
+TELEPHONE_LAB_N3            1 TELEPHONE_TYPE                                    
+
+4 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequence on step 7
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name FORMAT A20 HEADING "Sequence Name"
+SQL> SELECT   sequence_name
+  2  FROM     user_sequences
+  3  WHERE    sequence_name = UPPER('telephone_lab_s1');
+
+Sequence Name                                                                   
+--------------------                                                            
+TELEPHONE_LAB_S1                                                                
+
+1 row selected.
+
+SQL> 
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Step 8: Create RENTAL table and sequence.
+SQL> -- ------------------------------------------------------------------
+SQL> -- Conditionally drop table and sequence.
+SQL> BEGIN
+  2    FOR i IN (SELECT null FROM user_tables WHERE table_name = 'RENTAL_LAB') LOOP
+  3  	 EXECUTE IMMEDIATE 'DROP TABLE rental_lab CASCADE CONSTRAINTS';
+  4    END LOOP;
+  5    FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'RENTAL_LAB_S1') LOOP
+  6  	 EXECUTE IMMEDIATE 'DROP SEQUENCE rental_lab_s1';
+  7    END LOOP;
+  8  END;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> -- Create table.
+SQL> CREATE TABLE rental_lab
+  2  ( rental_lab_id		       NUMBER
+  3  , customer_lab_id		       NUMBER CONSTRAINT nn_rental_lab_1 NOT NULL
+  4  , check_out_date		   DATE   CONSTRAINT nn_rental_lab_2 NOT NULL
+  5  , return_date		   DATE   CONSTRAINT nn_rental_lab_3 NOT NULL
+  6  , created_by		   NUMBER CONSTRAINT nn_rental_lab_4 NOT NULL
+  7  , creation_date		   DATE   CONSTRAINT nn_rental_lab_5 NOT NULL
+  8  , last_updated_by		   NUMBER CONSTRAINT nn_rental_lab_6 NOT NULL
+  9  , last_update_date 	   DATE   CONSTRAINT nn_rental_lab_7 NOT NULL
+ 10  , CONSTRAINT pk_rental_lab_1      PRIMARY KEY(rental_lab_id)
+ 11  , CONSTRAINT fk_rental_lab_1      FOREIGN KEY(customer_lab_id) REFERENCES contact_lab(contact_lab_id)
+ 12  , CONSTRAINT fk_rental_lab_2      FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+ 13  , CONSTRAINT fk_rental_lab_3      FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));
+
+Table created.
+
+SQL> 
+SQL> -- Create a sequence.
+SQL> CREATE SEQUENCE rental_lab_s1 START WITH 1001;
+
+Sequence created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify completion of step 8
+SQL> -- ------------------------------------------------------------------
+SQL> SET NULL ''
+SQL> COLUMN table_name	 FORMAT A18
+SQL> COLUMN column_id	 FORMAT 9999
+SQL> COLUMN column_name  FORMAT A22
+SQL> COLUMN data_type	 FORMAT A12
+SQL> SELECT   table_name
+  2  ,	      column_id
+  3  ,	      column_name
+  4  ,	      CASE
+  5  		WHEN nullable = 'N' THEN 'NOT NULL'
+  6  		ELSE ''
+  7  	      END AS nullable
+  8  ,	      CASE
+  9  		WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+ 10  		  data_type||'('||data_length||')'
+ 11  		ELSE
+ 12  		  data_type
+ 13  	      END AS data_type
+ 14  FROM     user_tab_columns
+ 15  WHERE    table_name = UPPER('rental_lab')
+ 16  ORDER BY 2;
+
+                             Column                                             
+TABLE_NAME         COLUMN_ID Name                   NULLABLE DATA_TYPE          
+------------------ --------- ---------------------- -------- ------------       
+RENTAL_LAB                 1 RENTAL_LAB_ID          NOT NULL NUMBER(22)         
+RENTAL_LAB                 2 CUSTOMER_LAB_ID        NOT NULL NUMBER(22)         
+RENTAL_LAB                 3 CHECK_OUT_DATE         NOT NULL DATE               
+RENTAL_LAB                 4 RETURN_DATE            NOT NULL DATE               
+RENTAL_LAB                 5 CREATED_BY             NOT NULL NUMBER(22)         
+RENTAL_LAB                 6 CREATION_DATE          NOT NULL DATE               
+RENTAL_LAB                 7 LAST_UPDATED_BY        NOT NULL NUMBER(22)         
+RENTAL_LAB                 8 LAST_UPDATE_DATE       NOT NULL DATE               
+
+8 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify constraints of step 8
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN constraint_name   FORMAT A22
+SQL> COLUMN search_condition  FORMAT A36
+SQL> COLUMN constraint_type   FORMAT A1
+SQL> SELECT   uc.constraint_name
+  2  ,	      uc.search_condition
+  3  ,	      uc.constraint_type
+  4  FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+  5  ON       uc.table_name = ucc.table_name
+  6  AND      uc.constraint_name = ucc.constraint_name
+  7  WHERE    uc.table_name = UPPER('rental_lab')
+  8  AND      uc.constraint_type IN (UPPER('c'),UPPER('p'))
+  9  ORDER BY uc.constraint_type DESC
+ 10  ,	      uc.constraint_name;
+
+CONSTRAINT_NAME        SEARCH_CONDITION                     C                   
+---------------------- ------------------------------------ -                   
+PK_RENTAL_LAB_1                                             P                   
+NN_RENTAL_LAB_1        "CUSTOMER_LAB_ID" IS NOT NULL        C                   
+NN_RENTAL_LAB_2        "CHECK_OUT_DATE" IS NOT NULL         C                   
+NN_RENTAL_LAB_3        "RETURN_DATE" IS NOT NULL            C                   
+NN_RENTAL_LAB_4        "CREATED_BY" IS NOT NULL             C                   
+NN_RENTAL_LAB_5        "CREATION_DATE" IS NOT NULL          C                   
+NN_RENTAL_LAB_6        "LAST_UPDATED_BY" IS NOT NULL        C                   
+NN_RENTAL_LAB_7        "LAST_UPDATE_DATE" IS NOT NULL       C                   
+
+8 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify foreign keys of step 8
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A40 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.POSITION = ucc2.POSITION -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = UPPER('rental_lab')
+ 13  ORDER BY ucc1.table_name
+ 14  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- ---------------------------------------- 
+FK_RENTAL_LAB_1                        REFERENCES                               
+(RENTAL_LAB.CUSTOMER_LAB_ID)           (CONTACT_LAB.CONTACT_LAB_ID)             
+                                                                                
+FK_RENTAL_LAB_2                        REFERENCES                               
+(RENTAL_LAB.CREATED_BY)                (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+FK_RENTAL_LAB_3                        REFERENCES                               
+(RENTAL_LAB.LAST_UPDATED_BY)           (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+
+3 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequence of step 8
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name FORMAT A20 HEADING "Sequence Name"
+SQL> SELECT   sequence_name
+  2  FROM     user_sequences
+  3  WHERE    sequence_name = UPPER('rental_lab_s1');
+
+Sequence Name                                                                   
+--------------------                                                            
+RENTAL_LAB_S1                                                                   
+
+1 row selected.
+
+SQL> 
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Step 9: Create ITEM table and sequence.
+SQL> -- ------------------------------------------------------------------
+SQL> -- Conditionally drop objects.
+SQL> BEGIN
+  2    FOR i IN (SELECT null FROM user_tables WHERE table_name = 'ITEM_LAB') LOOP
+  3  	 EXECUTE IMMEDIATE 'DROP TABLE item_lab CASCADE CONSTRAINTS';
+  4    END LOOP;
+  5    FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'ITEM_LAB_S1') LOOP
+  6  	 EXECUTE IMMEDIATE 'DROP SEQUENCE item_lab_s1';
+  7    END LOOP;
+  8  END;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> -- Create a table.
+SQL> CREATE TABLE item_lab
+  2  ( item_lab_id		       NUMBER
+  3  , item_barcode		   VARCHAR2(14) CONSTRAINT nn_item_lab_1 NOT NULL
+  4  , item_type		   NUMBER	CONSTRAINT nn_item_lab_2 NOT NULL
+  5  , item_title		   VARCHAR2(60) CONSTRAINT nn_item_lab_3 NOT NULL
+  6  , item_subtitle		   VARCHAR2(60)
+  7  , item_rating		   VARCHAR2(8)	CONSTRAINT nn_item_lab_4 NOT NULL
+  8  , item_release_date	   DATE 	CONSTRAINT nn_item_lab_5 NOT NULL
+  9  , created_by		   NUMBER	CONSTRAINT nn_item_lab_6 NOT NULL
+ 10  , creation_date		   DATE 	CONSTRAINT nn_item_lab_7 NOT NULL
+ 11  , last_updated_by		   NUMBER	CONSTRAINT nn_item_lab_8 NOT NULL
+ 12  , last_update_date 	   DATE 	CONSTRAINT nn_item_lab_9 NOT NULL
+ 13  , CONSTRAINT pk_item_lab_1        PRIMARY KEY(item_lab_id)
+ 14  , CONSTRAINT fk_item_lab_1        FOREIGN KEY(item_type) REFERENCES common_lookup_lab(common_lookup_lab_id)
+ 15  , CONSTRAINT fk_item_lab_2        FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+ 16  , CONSTRAINT fk_item_lab_3        FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));
+
+Table created.
+
+SQL> 
+SQL> -- Create a sequence.
+SQL> CREATE SEQUENCE item_lab_s1 START WITH 1001;
+
+Sequence created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify completion of step 9
+SQL> -- ------------------------------------------------------------------
+SQL> SET NULL ''
+SQL> COLUMN table_name	 FORMAT A18
+SQL> COLUMN column_id	 FORMAT 9999
+SQL> COLUMN column_name  FORMAT A22
+SQL> COLUMN data_type	 FORMAT A12
+SQL> SELECT   table_name
+  2  ,	      column_id
+  3  ,	      column_name
+  4  ,	      CASE
+  5  		WHEN nullable = 'N' THEN 'NOT NULL'
+  6  		ELSE ''
+  7  	      END AS nullable
+  8  ,	      CASE
+  9  		WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+ 10  		  data_type||'('||data_length||')'
+ 11  		ELSE
+ 12  		  data_type
+ 13  	      END AS data_type
+ 14  FROM     user_tab_columns
+ 15  WHERE    table_name = 'ITEM_LAB'
+ 16  ORDER BY 2;
+
+                             Column                                             
+TABLE_NAME         COLUMN_ID Name                   NULLABLE DATA_TYPE          
+------------------ --------- ---------------------- -------- ------------       
+ITEM_LAB                   1 ITEM_LAB_ID            NOT NULL NUMBER(22)         
+ITEM_LAB                   2 ITEM_BARCODE           NOT NULL VARCHAR2(14)       
+ITEM_LAB                   3 ITEM_TYPE              NOT NULL NUMBER(22)         
+ITEM_LAB                   4 ITEM_TITLE             NOT NULL VARCHAR2(60)       
+ITEM_LAB                   5 ITEM_SUBTITLE                   VARCHAR2(60)       
+ITEM_LAB                   6 ITEM_RATING            NOT NULL VARCHAR2(8)        
+ITEM_LAB                   7 ITEM_RELEASE_DATE      NOT NULL DATE               
+ITEM_LAB                   8 CREATED_BY             NOT NULL NUMBER(22)         
+ITEM_LAB                   9 CREATION_DATE          NOT NULL DATE               
+ITEM_LAB                  10 LAST_UPDATED_BY        NOT NULL NUMBER(22)         
+ITEM_LAB                  11 LAST_UPDATE_DATE       NOT NULL DATE               
+
+11 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify constraints of step 9
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN constraint_name   FORMAT A22
+SQL> COLUMN search_condition  FORMAT A36
+SQL> COLUMN constraint_type   FORMAT A1
+SQL> SELECT   uc.constraint_name
+  2  ,	      uc.search_condition
+  3  ,	      uc.constraint_type
+  4  FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+  5  ON       uc.table_name = ucc.table_name
+  6  AND      uc.constraint_name = ucc.constraint_name
+  7  WHERE    uc.table_name = UPPER('item_lab')
+  8  AND      uc.constraint_type IN (UPPER('c'),UPPER('p'))
+  9  ORDER BY uc.constraint_type DESC
+ 10  ,	      uc.constraint_name;
+
+CONSTRAINT_NAME        SEARCH_CONDITION                     C                   
+---------------------- ------------------------------------ -                   
+PK_ITEM_LAB_1                                               P                   
+NN_ITEM_LAB_1          "ITEM_BARCODE" IS NOT NULL           C                   
+NN_ITEM_LAB_2          "ITEM_TYPE" IS NOT NULL              C                   
+NN_ITEM_LAB_3          "ITEM_TITLE" IS NOT NULL             C                   
+NN_ITEM_LAB_4          "ITEM_RATING" IS NOT NULL            C                   
+NN_ITEM_LAB_5          "ITEM_RELEASE_DATE" IS NOT NULL      C                   
+NN_ITEM_LAB_6          "CREATED_BY" IS NOT NULL             C                   
+NN_ITEM_LAB_7          "CREATION_DATE" IS NOT NULL          C                   
+NN_ITEM_LAB_8          "LAST_UPDATED_BY" IS NOT NULL        C                   
+NN_ITEM_LAB_9          "LAST_UPDATE_DATE" IS NOT NULL       C                   
+
+10 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify foreign keys of step 9
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A38 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.POSITION = ucc2.POSITION -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = UPPER('item_lab')
+ 13  ORDER BY ucc1.table_name
+ 14  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- --------------------------------------   
+FK_ITEM_LAB_1                          REFERENCES                               
+(ITEM_LAB.ITEM_TYPE)                   (COMMON_LOOKUP_LAB.COMMON_LOOKUP_LAB_I   
+                                       D)                                       
+                                                                                
+FK_ITEM_LAB_2                          REFERENCES                               
+(ITEM_LAB.CREATED_BY)                  (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+FK_ITEM_LAB_3                          REFERENCES                               
+(ITEM_LAB.LAST_UPDATED_BY)             (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+
+3 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequence of step 9
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name FORMAT A20 HEADING "Sequence Name"
+SQL> SELECT   sequence_name
+  2  FROM     user_sequences
+  3  WHERE    sequence_name = UPPER('item_lab_s1');
+
+Sequence Name                                                                   
+--------------------                                                            
+ITEM_LAB_S1                                                                     
+
+1 row selected.
+
+SQL> 
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Step 10: Create RENTAL_ITEM table and sequence.
+SQL> -- ------------------------------------------------------------------
+SQL> -- Conditionally drop table and sequence.
+SQL> BEGIN
+  2    FOR i IN (SELECT null FROM user_tables WHERE table_name = 'RENTAL_ITEM_LAB') LOOP
+  3  	 EXECUTE IMMEDIATE 'DROP TABLE rental_item_lab CASCADE CONSTRAINTS';
+  4    END LOOP;
+  5    FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'RENTAL_ITEM_LAB_S1') LOOP
+  6  	 EXECUTE IMMEDIATE 'DROP SEQUENCE rental_item_lab_s1';
+  7    END LOOP;
+  8  END;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> -- Create table.
+SQL> CREATE TABLE rental_item_lab
+  2  ( rental_item_lab_id	       NUMBER
+  3  , rental_lab_id		       NUMBER CONSTRAINT nn_rental_item_lab_1 NOT NULL
+  4  , item_lab_id		       NUMBER CONSTRAINT nn_rental_item_lab_2 NOT NULL
+  5  , created_by		   NUMBER CONSTRAINT nn_rental_item_lab_3 NOT NULL
+  6  , creation_date		   DATE   CONSTRAINT nn_rental_item_lab_4 NOT NULL
+  7  , last_updated_by		   NUMBER CONSTRAINT nn_rental_item_lab_5 NOT NULL
+  8  , last_update_date 	   DATE   CONSTRAINT nn_rental_item_lab_6 NOT NULL
+  9  , CONSTRAINT pk_rental_item_lab_1 PRIMARY KEY(rental_item_lab_id)
+ 10  , CONSTRAINT fk_rental_item_lab_1 FOREIGN KEY(rental_lab_id) REFERENCES rental_lab(rental_lab_id)
+ 11  , CONSTRAINT fk_rental_item_lab_2 FOREIGN KEY(item_lab_id) REFERENCES item_lab(item_lab_id)
+ 12  , CONSTRAINT fk_rental_item_lab_3 FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+ 13  , CONSTRAINT fk_rental_item_lab_4 FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));
+
+Table created.
+
+SQL> 
+SQL> -- Create a sequence.
+SQL> CREATE SEQUENCE rental_item_lab_s1 START WITH 1001;
+
+Sequence created.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify completion of step 10
+SQL> -- ------------------------------------------------------------------
+SQL> SET NULL ''
+SQL> COLUMN table_name	 FORMAT A18
+SQL> COLUMN column_id	 FORMAT 9999
+SQL> COLUMN column_name  FORMAT A22
+SQL> COLUMN data_type	 FORMAT A12
+SQL> SELECT   table_name
+  2  ,	      column_id
+  3  ,	      column_name
+  4  ,	      CASE
+  5  		WHEN nullable = 'N' THEN 'NOT NULL'
+  6  		ELSE ''
+  7  	      END AS nullable
+  8  ,	      CASE
+  9  		WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+ 10  		  data_type||'('||data_length||')'
+ 11  		ELSE
+ 12  		  data_type
+ 13  	      END AS data_type
+ 14  FROM     user_tab_columns
+ 15  WHERE    table_name = UPPER('rental_item_lab')
+ 16  ORDER BY 2;
+
+                             Column                                             
+TABLE_NAME         COLUMN_ID Name                   NULLABLE DATA_TYPE          
+------------------ --------- ---------------------- -------- ------------       
+RENTAL_ITEM_LAB            1 RENTAL_ITEM_LAB_ID     NOT NULL NUMBER(22)         
+RENTAL_ITEM_LAB            2 RENTAL_LAB_ID          NOT NULL NUMBER(22)         
+RENTAL_ITEM_LAB            3 ITEM_LAB_ID            NOT NULL NUMBER(22)         
+RENTAL_ITEM_LAB            4 CREATED_BY             NOT NULL NUMBER(22)         
+RENTAL_ITEM_LAB            5 CREATION_DATE          NOT NULL DATE               
+RENTAL_ITEM_LAB            6 LAST_UPDATED_BY        NOT NULL NUMBER(22)         
+RENTAL_ITEM_LAB            7 LAST_UPDATE_DATE       NOT NULL DATE               
+
+7 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify constraints of step 10
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN constraint_name   FORMAT A22
+SQL> COLUMN search_condition  FORMAT A36
+SQL> COLUMN constraint_type   FORMAT A1
+SQL> SELECT   uc.constraint_name
+  2  ,	      uc.search_condition
+  3  ,	      uc.constraint_type
+  4  FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+  5  ON       uc.table_name = ucc.table_name
+  6  AND      uc.constraint_name = ucc.constraint_name
+  7  WHERE    uc.table_name = UPPER('rental_item_lab')
+  8  AND      uc.constraint_type IN (UPPER('c'),UPPER('p'))
+  9  ORDER BY uc.constraint_type DESC
+ 10  ,	      uc.constraint_name;
+
+CONSTRAINT_NAME        SEARCH_CONDITION                     C                   
+---------------------- ------------------------------------ -                   
+PK_RENTAL_ITEM_LAB_1                                        P                   
+NN_RENTAL_ITEM_LAB_1   "RENTAL_LAB_ID" IS NOT NULL          C                   
+NN_RENTAL_ITEM_LAB_2   "ITEM_LAB_ID" IS NOT NULL            C                   
+NN_RENTAL_ITEM_LAB_3   "CREATED_BY" IS NOT NULL             C                   
+NN_RENTAL_ITEM_LAB_4   "CREATION_DATE" IS NOT NULL          C                   
+NN_RENTAL_ITEM_LAB_5   "LAST_UPDATED_BY" IS NOT NULL        C                   
+NN_RENTAL_ITEM_LAB_6   "LAST_UPDATE_DATE" IS NOT NULL       C                   
+
+7 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify foreign keys of step 10
+SQL> -- ------------------------------------------------------------------
+SQL> COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+SQL> COL references_column FORMAT A40 HEADING "References:| Table.Column"
+SQL> SELECT   uc.constraint_name||CHR(10)
+  2  ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+  3  ,	     'REFERENCES'||CHR(10)
+  4  ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+  5  FROM     user_constraints uc
+  6  ,	      user_cons_columns ucc1
+  7  ,	      user_cons_columns ucc2
+  8  WHERE    uc.constraint_name = ucc1.constraint_name
+  9  AND      uc.r_constraint_name = ucc2.constraint_name
+ 10  AND      ucc1.POSITION = ucc2.POSITION -- Correction for multiple column primary keys.
+ 11  AND      uc.constraint_type = 'R'
+ 12  AND      ucc1.table_name = UPPER('rental_item_lab')
+ 13  ORDER BY ucc1.table_name
+ 14  ,	      uc.constraint_name;
+
+Constraint Name:                       References:                              
+ Table.Column                           Table.Column                            
+-------------------------------------- ---------------------------------------- 
+FK_RENTAL_ITEM_LAB_1                   REFERENCES                               
+(RENTAL_ITEM_LAB.RENTAL_LAB_ID)        (RENTAL_LAB.RENTAL_LAB_ID)               
+                                                                                
+FK_RENTAL_ITEM_LAB_2                   REFERENCES                               
+(RENTAL_ITEM_LAB.ITEM_LAB_ID)          (ITEM_LAB.ITEM_LAB_ID)                   
+                                                                                
+FK_RENTAL_ITEM_LAB_3                   REFERENCES                               
+(RENTAL_ITEM_LAB.CREATED_BY)           (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+FK_RENTAL_ITEM_LAB_4                   REFERENCES                               
+(RENTAL_ITEM_LAB.LAST_UPDATED_BY)      (SYSTEM_USER_LAB.SYSTEM_USER_LAB_ID)     
+                                                                                
+
+4 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequence of step 10
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name FORMAT A20 HEADING "Sequence Name"
+SQL> SELECT   sequence_name
+  2  FROM     user_sequences
+  3  WHERE    sequence_name = UPPER('rental_item_lab_s1');
+
+Sequence Name                                                                   
+--------------------                                                            
+RENTAL_ITEM_LAB_S1                                                              
+
+1 row selected.
+
+SQL> 
+SQL> 
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify tables of project
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN table_name_base FORMAT A30 HEADING "Base Tables"
+SQL> COLUMN table_name_lab  FORMAT A30 HEADING "Lab Tables"
+SQL> SELECT   a.table_name_base
+  2  ,	      b.table_name_lab
+  3  FROM    (SELECT   table_name AS table_name_base
+  4  	      FROM     user_tables
+  5  	      WHERE    table_name IN ('SYSTEM_USER'
+  6  				     ,'COMMON_LOOKUP'
+  7  				     ,'MEMBER'
+  8  				     ,'CONTACT'
+  9  				     ,'ADDRESS'
+ 10  				     ,'STREET_ADDRESS'
+ 11  				     ,'TELEPHONE'
+ 12  				     ,'ITEM'
+ 13  				     ,'RENTAL'
+ 14  				     ,'RENTAL_ITEM')) a INNER JOIN
+ 15  	     (SELECT   table_name AS table_name_lab
+ 16  	      FROM     user_tables
+ 17  	      WHERE    table_name IN ('SYSTEM_USER_LAB'
+ 18  				     ,'COMMON_LOOKUP_LAB'
+ 19  				     ,'MEMBER_LAB'
+ 20  				     ,'CONTACT_LAB'
+ 21  				     ,'ADDRESS_LAB'
+ 22  				     ,'STREET_ADDRESS_LAB'
+ 23  				     ,'TELEPHONE_LAB'
+ 24  				     ,'ITEM_LAB'
+ 25  				     ,'RENTAL_LAB'
+ 26  				     ,'RENTAL_ITEM_LAB')) b
+ 27  ON       a.table_name_base = SUBSTR( b.table_name_lab, 1, REGEXP_INSTR(table_name_lab,'_LAB') - 1)
+ 28  ORDER BY CASE
+ 29  		WHEN table_name_base LIKE 'SYSTEM_USER%' THEN 0
+ 30  		WHEN table_name_base LIKE 'COMMON_LOOKUP%' THEN 1
+ 31  		WHEN table_name_base LIKE 'MEMBER%' THEN 2
+ 32  		WHEN table_name_base LIKE 'CONTACT%' THEN 3
+ 33  		WHEN table_name_base LIKE 'ADDRESS%' THEN 4
+ 34  		WHEN table_name_base LIKE 'STREET_ADDRESS%' THEN 5
+ 35  		WHEN table_name_base LIKE 'TELEPHONE%' THEN 6
+ 36  		WHEN table_name_base LIKE 'ITEM%' THEN 7
+ 37  		WHEN table_name_base LIKE 'RENTAL%' AND NOT table_name_base LIKE 'RENTAL_ITEM%' THEN 8
+ 38  		WHEN table_name_base LIKE 'RENTAL_ITEM%' THEN 9
+ 39  	      END;
+
+Base Tables                    Lab Tables                                       
+------------------------------ ------------------------------                   
+SYSTEM_USER                    SYSTEM_USER_LAB                                  
+COMMON_LOOKUP                  COMMON_LOOKUP_LAB                                
+MEMBER                         MEMBER_LAB                                       
+CONTACT                        CONTACT_LAB                                      
+ADDRESS                        ADDRESS_LAB                                      
+STREET_ADDRESS                 STREET_ADDRESS_LAB                               
+TELEPHONE                      TELEPHONE_LAB                                    
+ITEM                           ITEM_LAB                                         
+RENTAL                         RENTAL_LAB                                       
+RENTAL_ITEM                    RENTAL_ITEM_LAB                                  
+
+10 rows selected.
+
+SQL> 
+SQL> -- ------------------------------------------------------------------
+SQL> -- Verify sequences of project
+SQL> -- ------------------------------------------------------------------
+SQL> COLUMN sequence_name_base FORMAT A30 HEADING "Base Sequences"
+SQL> COLUMN sequence_name_lab  FORMAT A30 HEADING "Lab Sequences"
+SQL> SELECT   a.sequence_name_base
+  2  ,	      b.sequence_name_lab
+  3  FROM    (SELECT   sequence_name AS sequence_name_base
+  4  	      FROM     user_sequences
+  5  	      WHERE    sequence_name IN ('SYSTEM_USER_S1'
+  6  					,'COMMON_LOOKUP_S1'
+  7  					,'MEMBER_S1'
+  8  					,'CONTACT_S1'
+  9  					,'ADDRESS_S1'
+ 10  					,'STREET_ADDRESS_S1'
+ 11  					,'TELEPHONE_S1'
+ 12  					,'ITEM_S1'
+ 13  					,'RENTAL_S1'
+ 14  					,'RENTAL_ITEM_S1')) a INNER JOIN
+ 15  	     (SELECT   sequence_name AS sequence_name_lab
+ 16  	      FROM     user_sequences
+ 17  	      WHERE    sequence_name IN ('SYSTEM_USER_LAB_S1'
+ 18  					,'COMMON_LOOKUP_LAB_S1'
+ 19  					,'MEMBER_LAB_S1'
+ 20  					,'CONTACT_LAB_S1'
+ 21  					,'ADDRESS_LAB_S1'
+ 22  					,'STREET_ADDRESS_LAB_S1'
+ 23  					,'TELEPHONE_LAB_S1'
+ 24  					,'ITEM_LAB_S1'
+ 25  					,'RENTAL_LAB_S1'
+ 26  					,'RENTAL_ITEM_LAB_S1')) b
+ 27  ON       SUBSTR(a.sequence_name_base, 1, REGEXP_INSTR(a.sequence_name_base,'_S1') - 1) =
+ 28  		SUBSTR( b.sequence_name_lab, 1, REGEXP_INSTR(b.sequence_name_lab,'_LAB_S1') - 1)
+ 29  ORDER BY CASE
+ 30  		WHEN sequence_name_base LIKE 'SYSTEM_USER%' THEN 0
+ 31  		WHEN sequence_name_base LIKE 'COMMON_LOOKUP%' THEN 1
+ 32  		WHEN sequence_name_base LIKE 'MEMBER%' THEN 2
+ 33  		WHEN sequence_name_base LIKE 'CONTACT%' THEN 3
+ 34  		WHEN sequence_name_base LIKE 'ADDRESS%' THEN 4
+ 35  		WHEN sequence_name_base LIKE 'STREET_ADDRESS%' THEN 5
+ 36  		WHEN sequence_name_base LIKE 'TELEPHONE%' THEN 6
+ 37  		WHEN sequence_name_base LIKE 'ITEM%' THEN 7
+ 38  		WHEN sequence_name_base LIKE 'RENTAL%' AND NOT sequence_name_base LIKE 'RENTAL_ITEM%' THEN 8
+ 39  		WHEN sequence_name_base LIKE 'RENTAL_ITEM%' THEN 9
+ 40  	      END;
+
+Base Sequences                 Lab Sequences                                    
+------------------------------ ------------------------------                   
+SYSTEM_USER_S1                 SYSTEM_USER_LAB_S1                               
+COMMON_LOOKUP_S1               COMMON_LOOKUP_LAB_S1                             
+MEMBER_S1                      MEMBER_LAB_S1                                    
+CONTACT_S1                     CONTACT_LAB_S1                                   
+ADDRESS_S1                     ADDRESS_LAB_S1                                   
+STREET_ADDRESS_S1              STREET_ADDRESS_LAB_S1                            
+TELEPHONE_S1                   TELEPHONE_LAB_S1                                 
+ITEM_S1                        ITEM_LAB_S1                                      
+RENTAL_S1                      RENTAL_LAB_S1                                    
+RENTAL_ITEM_S1                 RENTAL_ITEM_LAB_S1                               
+
+10 rows selected.
+
+SQL> 
+SQL> -- Commit inserted records.
+SQL> COMMIT;
+
+Commit complete.
+
+SQL> 
+SQL> -- Close log file.
+SQL> SPOOL OFF
